@@ -56,9 +56,10 @@
 <div class="offcanvas-body">
 <form id="purchase-form" novalidate>
 <label for="delivery-name">Nombre a entregar *</label>
-<input id="delivery-name" name="deliveryName" required>
+<input id="delivery-name" name="deliveryName" maxlength="300" required>
 <label for="delivery-place">Lugar de entrega *</label>
 <textarea id="delivery-place" name="deliveryPlace" placeholder="Dirección, comuna y referencias" required></textarea>
+<p class="form-message"><strong>Horario de retiro en local:</strong> lunes a sábado, 09:00 a 19:00.<br><strong>Entrega a domicilio:</strong> lunes a sábado, 09:00 a 19:00; domingos y festivos, 10:00 a 16:00.</p>
 <label for="card-number">Tarjeta a usar para pagar *</label>
 <input id="card-number" name="card" inputmode="numeric" maxlength="16" placeholder="16 dígitos" required>
 <label for="purchase-gift">Regalo *</label>
