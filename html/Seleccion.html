@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi selección | Gas El Volcán</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../css/EstiloPaginaGEV.css">
+</head>
+<body>
+<header class="site-header">
+<nav class="navbar container">
+<a class="brand" href="InicioPagina.html">
+<img src="../img/logoMasNombreGEV.jpg" alt="Gas El Volcán">
+</a>
+<div class="nav-links">
+<a class="nav-link" href="InicioPagina.html">Inicio</a>
+<a class="nav-link" href="Catalogo.html">Seguir comprando</a>
+<a class="nav-link" href="Contacto.html">Contacto</a>
+</div>
+</nav>
+</header>
+<main class="container">
+<section class="page-heading">
+<p class="eyebrow">LocalStorage</p>
+<h1>Mi selección.</h1>
+<p>Estos elementos se conservan en tu navegador para que puedas revisarlos antes de contactarnos.</p>
+</section>
+<section class="content-grid">
+<div class="form-card">
+<ul class="selection-list" id="selection-list">
+</ul>
+</div>
+<aside class="form-card">
+<p class="eyebrow">Resumen</p>
+<h2 id="selection-total">$0</h2>
+<p>Subtotal referencial de los productos seleccionados.</p>
+<button class="button button-primary" type="button" data-open-purchase>Comprar productos</button>
+<p id="purchase-message" class="form-message" aria-live="polite"></p>
+</aside>
+</section>
+<p id="purchase-notification" class="purchase-notification" aria-live="polite"></p>
+</main>
+<footer class="site-footer">
+<div class="container footer-content">
+<h2>Gas El Volcán</h2>
+<p>Teléfono: <a href="tel:+56912345678">+56912345678</a></p>
+<p>© 2026 Gas El Volcán</p>
+</div>
+</footer>
+<div class="offcanvas offcanvas-end" tabindex="-1" id="purchase-offcanvas">
+<div class="offcanvas-header">
+<h2>Datos de compra</h2>
+<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+</div>
+<div class="offcanvas-body">
+<form id="purchase-form" novalidate>
+<label for="delivery-name">Nombre a entregar *</label>
+<input id="delivery-name" name="deliveryName" required>
+<label for="delivery-place">Lugar de entrega *</label>
+<textarea id="delivery-place" name="deliveryPlace" placeholder="Dirección, comuna y referencias" required></textarea>
+<label for="card-number">Tarjeta a usar para pagar *</label>
+<input id="card-number" name="card" inputmode="numeric" maxlength="16" placeholder="16 dígitos" required>
+<label for="purchase-gift">Regalo *</label>
+<select id="purchase-gift" name="gift">
+<option value="Bolsa de tela">Bolsa de tela</option>
+<option value="Alcancía">Alcancía</option>
+</select>
+<button class="button button-secondary gift-help" type="button" data-bs-toggle="popover" data-bs-trigger="focus" data-bs-title="Regalo de primera compra" data-bs-content="Solo en tu primera compra de esta sesión puedes elegir entre una bolsa de tela y una alcancía.">¿Por qué puedo elegir un regalo?</button>
+<p id="gift-note" class="form-message"></p>
+<p>Total de la compra</p>
+<h3 id="purchase-total">$0</h3>
+<button class="button button-primary" type="submit">Continuar compra</button>
+</form>
+</div>
+</div>
+<div class="modal fade" id="purchase-modal" tabindex="-1" aria-hidden="true">
+<div class="modal-dialog">
+<div class="modal-content">
+<div class="modal-header">
+<h2 class="modal-title">Confirmar compra</h2>
+<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+</div>
+<div class="modal-body">
+<p id="purchase-confirmation"></p>
+</div>
+<div class="modal-footer">
+<button type="button" class="button button-secondary" data-bs-dismiss="modal">Volver a revisar</button>
+<form id="purchase-confirm-form">
+<input type="hidden" id="purchase-data" name="purchaseData">
+<button class="button button-primary" type="submit">Confirmar compra</button>
+</form>
+</div>
+</div>
+</div>
+</div>
+<script src="../js/LogicaPaginaGEV.js">
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

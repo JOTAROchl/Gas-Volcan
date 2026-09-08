@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Usuarios | Administración</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../css/EstiloPaginaGEV.css">
+</head>
+<body>
+<header class="site-header admin-header">
+<nav class="navbar container">
+<a class="brand" href="admin.html">
+<img src="../img/logoMasNombreGEV.jpg" alt="Gas El Volcán">
+</a>
+<div class="nav-links">
+<a class="nav-link" href="admin.html">Panel</a>
+<a class="nav-link" href="admin-contenido.html">Contenido</a>
+<a class="nav-link active" href="admin-usuarios.html">Usuarios</a>
+<a class="nav-link" href="InicioPagina.html">Sitio público</a>
+</div>
+</nav>
+</header>
+<main class="container admin-shell">
+<section class="page-heading">
+<p class="eyebrow">Mantenedor de usuarios</p>
+<h1>Usuarios registrados.</h1>
+<button class="button button-primary" data-new-user>Crear usuario</button>
+</section>
+<div class="panel" style="overflow-x:auto">
+<table>
+<thead>
+<tr>
+<th>Nombre</th>
+<th>Correo</th>
+<th>RUN</th>
+<th>Rol</th>
+<th>Acción</th>
+</tr>
+</thead>
+<tbody id="admin-users-list">
+</tbody>
+</table>
+</div>
+</main>
+<div class="offcanvas offcanvas-end" tabindex="-1" id="user-offcanvas">
+<div class="offcanvas-header">
+<h2 id="user-offcanvas-title">Crear usuario</h2>
+<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+</div>
+<div class="offcanvas-body">
+<form id="user-admin-form">
+<input type="hidden" name="mode" value="new">
+<label for="admin-run">RUN *</label>
+<input id="admin-run" name="run" required>
+<label for="admin-name">Nombre *</label>
+<input id="admin-name" name="name" required>
+<label for="admin-lastname">Apellidos *</label>
+<input id="admin-lastname" name="lastname" required>
+<label for="admin-email">Correo *</label>
+<input id="admin-email" name="email" type="email" required>
+<label for="admin-role">Rol</label>
+<select id="admin-role" name="role">
+<option>Cliente</option>
+<option>Administrador</option>
+</select>
+<button class="button button-primary" type="submit">Guardar usuario</button>
+<p class="form-message" aria-live="polite"></p>
+</form>
+</div>
+</div>
+<div class="modal fade" id="delete-modal" tabindex="-1" aria-hidden="true">
+<div class="modal-dialog">
+<div class="modal-content">
+<div class="modal-header">
+<h2 class="modal-title">Confirmar eliminación</h2>
+<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+</div>
+<div class="modal-body">
+<p id="delete-message"></p>
+</div>
+<div class="modal-footer">
+<button type="button" class="button button-secondary" data-bs-dismiss="modal">Cancelar</button>
+<form id="delete-form">
+<input type="hidden" name="type">
+<input type="hidden" name="id">
+<button class="button button-danger" type="submit">Sí, eliminar</button>
+</form>
+</div>
+</div>
+</div>
+</div>
+<script src="../js/LogicaPaginaGEV.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

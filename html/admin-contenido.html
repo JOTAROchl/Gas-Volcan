@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contenido | Administración</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../css/EstiloPaginaGEV.css">
+</head>
+<body>
+<header class="site-header admin-header">
+<nav class="navbar container">
+<a class="brand" href="admin.html">
+<img src="../img/logoMasNombreGEV.jpg" alt="Gas El Volcán">
+</a>
+<div class="nav-links">
+<a class="nav-link" href="admin.html">Panel</a>
+<a class="nav-link active" href="admin-contenido.html">Contenido</a>
+<a class="nav-link" href="admin-usuarios.html">Usuarios</a>
+<a class="nav-link" href="InicioPagina.html">Sitio público</a>
+</div>
+</nav>
+</header>
+<main class="container admin-shell">
+<section class="page-heading">
+<p class="eyebrow">Mantenedor de contenido</p>
+<h1>Productos del catálogo.</h1>
+<button class="button button-primary" data-new-product>Agregar producto</button>
+</section>
+<div class="panel" style="overflow-x:auto">
+<table>
+<thead>
+<tr>
+<th>Código</th>
+<th>Categoría</th>
+<th>Producto</th>
+<th>Descripción</th>
+<th>Unidad</th>
+<th>Precio residencial</th>
+<th>Precio comercial</th>
+<th>Stock actual</th>
+<th>Acción</th>
+</tr>
+</thead>
+<tbody id="admin-products-list">
+</tbody>
+</table>
+</div>
+</main>
+<div class="offcanvas offcanvas-end" tabindex="-1" id="product-offcanvas">
+<div class="offcanvas-header">
+<h2 id="product-offcanvas-title">Crear producto</h2>
+<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+</div>
+<div class="offcanvas-body">
+<form id="product-admin-form">
+<input type="hidden" name="mode" value="new">
+<label for="product-code">Código *</label>
+<input id="product-code" name="codigo" required>
+<label for="product-category">Categoría *</label>
+<input id="product-category" name="categoria" required>
+<label for="product-name">Producto *</label>
+<input id="product-name" name="nombre" required>
+<label for="product-description">Descripción *</label>
+<textarea id="product-description" name="descripcion" required></textarea>
+<label for="product-unit">Unidad *</label>
+<input id="product-unit" name="unidad" required>
+<label for="product-residential">Precio residencial (CLP) *</label>
+<input id="product-residential" name="precioResidencial" type="number" min="0" required>
+<label for="product-commercial">Precio comercial (CLP) *</label>
+<input id="product-commercial" name="precioComercial" type="number" min="0" required>
+<label for="product-stock">Stock actual *</label>
+<input id="product-stock" name="stock" type="number" min="0" required>
+<button class="button button-primary" type="submit">Guardar producto</button>
+<p class="form-message" aria-live="polite"></p>
+</form>
+</div>
+</div>
+<div class="modal fade" id="delete-modal" tabindex="-1" aria-hidden="true">
+<div class="modal-dialog">
+<div class="modal-content">
+<div class="modal-header">
+<h2 class="modal-title">Confirmar eliminación</h2>
+<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+</div>
+<div class="modal-body">
+<p id="delete-message"></p>
+</div>
+<div class="modal-footer">
+<button type="button" class="button button-secondary" data-bs-dismiss="modal">Cancelar</button>
+<form id="delete-form">
+<input type="hidden" name="type">
+<input type="hidden" name="id">
+<button class="button button-danger" type="submit">Sí, eliminar</button>
+</form>
+</div>
+</div>
+</div>
+</div>
+<script src="../js/LogicaPaginaGEV.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
