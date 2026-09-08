@@ -50,8 +50,8 @@ const productosAdminIniciales = [
 ];
 
 const usuariosIniciales = [
-  { run: '12345678K', nombre: 'Camila', apellidos: 'Soto', email: 'camila@ejemplo.cl', rol: 'Cliente', password: '1234' },
-  { run: '111111111', nombre: 'Administrador', apellidos: 'Demo', email: 'admin@gasvolcan.cl', rol: 'Administrador', password: '1234' }
+  { run: '12345678K', nombre: 'Camila', apellidos: 'Soto', email: 'camila@ejemplo.cl', rol: 'Cliente', password: 'Camila1234' },
+  { run: '111111111', nombre: 'Administrador', apellidos: 'Demo', email: 'admin@gasvolcan.cl', rol: 'Administrador', password: 'Admin1234' }
 ];
 
 function getSessionList(key, initial) {
@@ -200,7 +200,7 @@ function renderNewsDetail() {
   if (item.regalos) {
     giftOptions = `<section class="gift-promotion">
       <h2>Elige tu regalo</h2>
-      <p>Selecciona una opción al comprar un cilindro de 15 o 45 kg.</p>
+      <p>En tu primera compra puedes elegir una opción de regalo.</p>
       <div class="gift-options">
         ${item.regalos.map((gift, index) => `<label class="gift-option">
           <input type="radio" name="gift" value="${gift.nombre}" ${index === 0 ? 'checked' : ''}>
@@ -330,8 +330,8 @@ function preparePurchaseConfirmation(form) {
     return;
   }
 
-  if (!name || !validateName(name) || !place || !/^\d{16}$/.test(card)) {
-    if (message) message.textContent = 'Completa la entrega y una tarjeta de 16 dígitos.';
+  if (!validateName(name) || !place || !/^\d{16}$/.test(card)) {
+    if (message) message.textContent = 'El nombre debe tener entre 3 y 300 caracteres, y la tarjeta debe tener 16 dígitos.';
     return;
   }
 
@@ -365,8 +365,16 @@ function validateEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+function validatePassword(value) {
+  return value.length >= 8
+    && value.length <= 1000
+    && /[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(value)
+    && /\d/.test(value);
+}
+
 function validateName(value) {
-  return /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]+$/.test(value.trim());
+  const name = value.trim();
+  return name.length >= 3 && name.length <= 300 && /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]+$/.test(name);
 }
 
 function setFormMessage(form, text, valid = false) {
@@ -378,6 +386,44 @@ function setFormMessage(form, text, valid = false) {
   }
 }
 
+function clearFieldError(field) {
+  if (!field) return;
+
+  field.classList.remove('field-error');
+  field.removeAttribute('aria-invalid');
+  const error = field.nextElementSibling?.classList.contains('field-error-message')
+    ? field.nextElementSibling
+    : null;
+  if (error) error.remove();
+}
+
+function setFieldError(form, fieldName, text) {
+  const field = form.elements[fieldName];
+  if (!field) return;
+
+  clearFieldError(field);
+  field.classList.add('field-error');
+  field.setAttribute('aria-invalid', 'true');
+
+  const error = document.createElement('span');
+  error.className = 'field-error-message';
+  error.setAttribute('role', 'alert');
+  error.textContent = text;
+  field.insertAdjacentElement('afterend', error);
+
+  setFormMessage(form, 'Revisa el campo indicado para continuar.');
+  field.focus();
+}
+
+function clearUserFormErrors(form) {
+  form.querySelectorAll('.field-error').forEach(clearFieldError);
+  const message = form.querySelector('.form-message');
+  if (message && message.classList.contains('error')) {
+    message.textContent = '';
+    message.className = 'form-message';
+  }
+}
+
 function validateLogin(form) {
   const email = form.email.value.trim();
   const password = form.password.value;
@@ -386,8 +432,8 @@ function validateLogin(form) {
     return setFormMessage(form, 'Ingresa un correo válido de máximo 100 caracteres.');
   }
 
-  if (password.length < 4 || password.length > 10) {
-    return setFormMessage(form, 'La contraseña debe tener entre 4 y 10 caracteres.');
+  if (!validatePassword(password)) {
+    return setFormMessage(form, 'La contraseña debe tener entre 8 y 1000 caracteres, con al menos una letra y un número.');
   }
 
   const user = getUsuarios().find(item => item.email === email && item.password === password);
@@ -406,8 +452,8 @@ function validateContact(form) {
   const email = form.email.value.trim();
   const comment = form.comment.value.trim();
 
-  if (!name || name.length > 100 || !validateName(name)) {
-    return setFormMessage(form, 'El nombre es obligatorio y debe tener máximo 100 caracteres.');
+  if (!validateName(name)) {
+    return setFormMessage(form, 'El nombre debe tener entre 3 y 300 caracteres y solo contener letras y espacios.');
   }
 
   if (email.length > 100 || !validateEmail(email)) {
@@ -442,28 +488,38 @@ function validarRun(run) {
 }
 
 function validateUser(form) {
+  clearUserFormErrors(form);
+
   if (!validarRun(form.run.value)) {
-    return setFormMessage(form, 'Ingresa un RUN válido, sin puntos ni guion.');
+    return setFieldError(form, 'run', 'Ingresa un RUN válido, sin puntos ni guion.');
   }
 
-  if (!form.name.value.trim() || form.name.value.length > 50 || !validateName(form.name.value)) {
-    return setFormMessage(form, 'El nombre es obligatorio y debe tener máximo 50 caracteres.');
+  if (!validateName(form.name.value)) {
+    return setFieldError(form, 'name', 'El nombre debe tener entre 3 y 300 caracteres y solo contener letras y espacios.');
   }
 
-  if (!form.lastname.value.trim() || form.lastname.value.length > 100 || !validateName(form.lastname.value)) {
-    return setFormMessage(form, 'Los apellidos son obligatorios y deben tener máximo 100 caracteres.');
+  if (!validateName(form.lastname.value)) {
+    return setFieldError(form, 'lastname', 'Los apellidos deben tener entre 3 y 300 caracteres y solo contener letras y espacios.');
   }
 
   if (!validateEmail(form.email.value) || form.email.value.length > 100) {
-    return setFormMessage(form, 'Ingresa un correo válido de máximo 100 caracteres.');
+    return setFieldError(form, 'email', 'Ingresa un correo válido de máximo 100 caracteres.');
+  }
+
+  if (!form.region.value) {
+    return setFieldError(form, 'region', 'Selecciona una región.');
+  }
+
+  if (!form.commune.value) {
+    return setFieldError(form, 'commune', 'Selecciona una comuna.');
   }
 
   if (!form.address.value.trim() || form.address.value.length > 300) {
-    return setFormMessage(form, 'La dirección es obligatoria y debe tener máximo 300 caracteres.');
+    return setFieldError(form, 'address', 'La dirección es obligatoria y debe tener máximo 300 caracteres.');
   }
 
-  if (form.password.value.length < 4 || form.password.value.length > 10) {
-    return setFormMessage(form, 'La contraseña debe tener entre 4 y 10 caracteres.');
+  if (!validatePassword(form.password.value)) {
+    return setFieldError(form, 'password', 'La contraseña debe tener entre 8 y 1000 caracteres, con al menos una letra y un número.');
   }
 
   const users = getUsuarios();
@@ -477,11 +533,12 @@ function validateUser(form) {
   };
 
   if (!validateName(newUser.nombre) || !validateName(newUser.apellidos)) {
-    return setFormMessage(form, 'El nombre y los apellidos solo deben contener letras y espacios.');
+    return setFieldError(form, 'name', 'El nombre y los apellidos solo deben contener letras y espacios.');
   }
 
   if (users.some(user => user.run === newUser.run || user.email === newUser.email)) {
-    return setFormMessage(form, 'El RUN o correo ya está registrado en esta sesión.');
+    const duplicatedField = users.some(user => user.run === newUser.run) ? 'run' : 'email';
+    return setFieldError(form, duplicatedField, 'El RUN o correo ya está registrado en esta sesión.');
   }
 
   users.push(newUser);
@@ -606,11 +663,11 @@ function saveAdminUser(form) {
     apellidos: form.elements.lastname.value.trim(),
     email: form.elements.email.value.trim(),
     rol: form.elements.role.value,
-    password: '1234'
+    password: 'Admin1234'
   };
 
-  if (!user.run || !user.nombre || !user.apellidos || !validateName(user.nombre) || !validateName(user.apellidos) || !validateEmail(user.email)) {
-    return setFormMessage(form, 'Completa los datos del usuario y usa un correo válido.');
+  if (!user.run || !validateName(user.nombre) || !validateName(user.apellidos) || !validateEmail(user.email)) {
+    return setFormMessage(form, 'Completa los datos y verifica que nombre y apellidos tengan entre 3 y 300 caracteres.');
   }
 
   const index = users.findIndex(item => item.run === user.run);
@@ -784,6 +841,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const user = document.querySelector('#user-form');
   if (user) {
+    user.querySelectorAll('input, select').forEach(field => {
+      field.addEventListener('input', () => {
+        clearFieldError(field);
+        const message = user.querySelector('.form-message');
+        if (message && message.classList.contains('error')) {
+          message.textContent = '';
+          message.className = 'form-message';
+        }
+      });
+      field.addEventListener('change', () => {
+        clearFieldError(field);
+        const message = user.querySelector('.form-message');
+        if (message && message.classList.contains('error')) {
+          message.textContent = '';
+          message.className = 'form-message';
+        }
+      });
+    });
+
     user.addEventListener('submit', event => {
       event.preventDefault();
       validateUser(user);

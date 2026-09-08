@@ -483,6 +483,33 @@ textarea {
 	color: #c52d1f;
 }
 
+.field-error {
+	border-color: #c52d1f;
+	box-shadow: 0 0 0 2px rgba(197, 45, 31, .12);
+}
+
+.field-error-message {
+	display: block;
+	position: relative;
+	margin-top: 6px;
+	padding: 7px 10px;
+	border-radius: 3px;
+	background: #c52d1f;
+	color: white;
+	font-size: .86rem;
+	line-height: 1.35;
+}
+
+.field-error-message::before {
+	content: '';
+	position: absolute;
+	top: -6px;
+	left: 14px;
+	border-right: 6px solid transparent;
+	border-bottom: 6px solid #c52d1f;
+	border-left: 6px solid transparent;
+}
+
 .form-row {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
