@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
-import CardProducto from './CardProducto'
-import { productosIniciales } from '../../pages/catalogoProductos'
+import CardProducto from '../components/molecules/CardProducto'
+import { productosIniciales } from '../pages/catalogoProductos'
 
 describe('CardProducto', () => {
   it('muestra los datos del producto y enlaza a su vista de detalle', () => {

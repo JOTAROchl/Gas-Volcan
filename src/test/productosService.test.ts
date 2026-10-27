@@ -2,11 +2,12 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import productosIniciales from '../pages/catalogoProductos'
 import {
   actualizarProducto,
+  buscarProductos,
   crearProducto,
   eliminarProducto,
   obtenerProductos,
   type NuevoProducto,
-} from './productosService'
+} from '../data/productosService'
 
 const productoNuevo: NuevoProducto = {
   categoria: 'Accesorios',
@@ -64,5 +65,40 @@ describe('CRUD de productos', () => {
     expect(resultado.some((producto) => producto.codigo === 'CL001')).toBe(false)
     expect(resultado.some((producto) => producto.codigo === 'CL002')).toBe(true)
     expect(obtenerProductos()).toEqual(resultado)
+  })
+
+  it('inicializa el catálogo con los productos de demostración', () => {
+    const resultado = obtenerProductos()
+
+    expect(resultado).toEqual(productosIniciales)
+    expect(JSON.parse(sessionStorage.getItem('gasVolcanProductos') ?? '[]')).toEqual(
+      productosIniciales,
+    )
+  })
+
+  it('rechaza la creación de un producto con precio no válido', () => {
+    expect(() =>
+      crearProducto({ ...productoNuevo, precioResidencial: 0 }),
+    ).toThrow('Los precios deben ser números mayores que cero.')
+    expect(obtenerProductos()).toHaveLength(productosIniciales.length)
+  })
+
+  it('busca productos sin distinguir mayúsculas ni tildes', () => {
+    const resultado = buscarProductos(productosIniciales, 'presion')
+
+    expect(resultado.map((producto) => producto.codigo)).toContain('RG001')
+    expect(
+      resultado.every((producto) =>
+        `${producto.nombre} ${producto.categoria} ${producto.descripcion}`
+          .toLocaleLowerCase('es-CL')
+          .includes('presión'),
+      ),
+    ).toBe(true)
+  })
+
+  it('informa si se intenta actualizar un código que no existe', () => {
+    expect(() =>
+      actualizarProducto('NO-EXISTE', { nombre: 'Producto inexistente' }),
+    ).toThrow('No se encontró el producto que deseas editar.')
   })
 })
