@@ -101,4 +101,36 @@ describe('CRUD de productos', () => {
       actualizarProducto('NO-EXISTE', { nombre: 'Producto inexistente' }),
     ).toThrow('No se encontró el producto que deseas editar.')
   })
+
+  it('busca por código de producto sin distinguir mayúsculas', () => {
+    const resultado = buscarProductos(productosIniciales, 'cl001')
+
+    expect(resultado.map((producto) => producto.codigo)).toEqual(['CL001'])
+  })
+
+  it('busca por categoría y devuelve todos los productos de esa categoría', () => {
+    const resultado = buscarProductos(productosIniciales, 'reguladores')
+
+    expect(resultado.map((producto) => producto.codigo)).toEqual([
+      'CL002',
+      'RG001',
+      'RG002',
+      'RG003',
+      'MG001',
+    ])
+  })
+
+  it('devuelve todos los productos cuando la búsqueda está vacía', () => {
+    const resultado = buscarProductos(productosIniciales, '   ')
+
+    expect(resultado).toBe(productosIniciales)
+    expect(resultado).toHaveLength(productosIniciales.length)
+  })
+
+  it('rechaza la eliminación de un producto que no existe', () => {
+    expect(() => eliminarProducto('NO-EXISTE')).toThrow(
+      'No se encontró el producto que deseas eliminar.',
+    )
+    expect(obtenerProductos()).toHaveLength(productosIniciales.length)
+  })
 })
