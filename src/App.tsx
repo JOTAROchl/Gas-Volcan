@@ -1,49 +1,31 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import Encabezado from './componentes/estructura/Encabezado'
-import PiePagina from './componentes/estructura/PiePagina'
-import Contacto from './paginas/Contacto'
-import DetalleProductos from './paginas/DetalleProductos'
-import Inicio from './paginas/Inicio'
-import LoginPagina from './paginas/LoginPagina'
-import NovedadDetalle from './paginas/NovedadDetalle'
-import Novedades from './paginas/Novedades'
-import Productos from './paginas/Productos'
-import QuienesSomos from './paginas/QuienesSomos'
-import Seleccion from './paginas/Seleccion'
-import PanelAdmin from './paginas/PanelAdmin'
-import RegistroPagina from './paginas/RegistroPagina'
-import productosIniciales, { type Producto } from './paginas/catalogoProductos'
+import Encabezado from './components/organisms/Encabezado'
+import PiePagina from './components/organisms/PiePagina'
+import Contacto from './pages/Contacto'
+import DetalleProductos from './pages/DetalleProductos'
+import Inicio from './pages/Inicio'
+import LoginPagina from './pages/LoginPagina'
+import NovedadDetalle from './pages/NovedadDetalle'
+import Novedades from './pages/Novedades'
+import Productos from './pages/Productos'
+import QuienesSomos from './pages/QuienesSomos'
+import Seleccion from './pages/Seleccion'
+import PanelAdmin from './pages/PanelAdmin'
+import RegistroPagina from './pages/RegistroPagina'
+import type { Producto } from './pages/catalogoProductos'
+import {
+  actualizarProducto,
+  crearProducto,
+  eliminarProducto,
+  obtenerProductos,
+  type CambiosProducto,
+  type NuevoProducto,
+} from './data/productosService'
 import './App.css'
 
 function App() {
-  const [productos, setProductos] = useState<Producto[]>(() => {
-    const saved = sessionStorage.getItem('gasVolcanProductos')
-    if (!saved) return productosIniciales
-
-    try {
-      const parsed: unknown = JSON.parse(saved)
-      if (
-        Array.isArray(parsed) &&
-        parsed.every(
-          (item) =>
-            typeof item === 'object' &&
-            item !== null &&
-            'codigo' in item &&
-            typeof item.codigo === 'string' &&
-            'nombre' in item &&
-            typeof item.nombre === 'string',
-        )
-      ) {
-        return parsed as Producto[]
-      }
-      throw new TypeError('El catálogo guardado no tiene el formato esperado.')
-    } catch (error) {
-      console.error('No se pudo leer el catálogo guardado.', error)
-      sessionStorage.removeItem('gasVolcanProductos')
-      return productosIniciales
-    }
-  })
+  const [productos, setProductos] = useState<Producto[]>(obtenerProductos)
   const [seleccion, setSeleccion] = useState<Producto[]>(() => {
     const saved = localStorage.getItem('gasVolcanSelection')
     if (!saved) return []
@@ -71,10 +53,6 @@ function App() {
     localStorage.setItem('gasVolcanSelection', JSON.stringify(seleccion))
   }, [seleccion])
 
-  useEffect(() => {
-    sessionStorage.setItem('gasVolcanProductos', JSON.stringify(productos))
-  }, [productos])
-
   function agregarProducto(producto: Producto) {
     setSeleccion((actual) =>
       actual.some((item) => item.codigo === producto.codigo)
@@ -85,6 +63,38 @@ function App() {
 
   function quitarProducto(codigo: string) {
     setSeleccion((actual) => actual.filter((item) => item.codigo !== codigo))
+  }
+
+  function crearProductoEnCatalogo(producto: NuevoProducto) {
+    const actualizados = crearProducto(producto)
+    setProductos(actualizados)
+    return actualizados
+  }
+
+  function actualizarProductoEnCatalogo(
+    codigo: string,
+    cambios: CambiosProducto,
+  ) {
+    const actualizados = actualizarProducto(codigo, cambios)
+    setProductos(actualizados)
+    const actualizado = actualizados.find((producto) => producto.codigo === codigo)
+    if (actualizado) {
+      setSeleccion((actual) =>
+        actual.map((producto) =>
+          producto.codigo === codigo ? actualizado : producto,
+        ),
+      )
+    }
+    return actualizados
+  }
+
+  function eliminarProductoDelCatalogo(codigo: string) {
+    const actualizados = eliminarProducto(codigo)
+    setProductos(actualizados)
+    setSeleccion((actual) =>
+      actual.filter((producto) => producto.codigo !== codigo),
+    )
+    return actualizados
   }
 
   return (
@@ -131,7 +141,9 @@ function App() {
             element={
               <PanelAdmin
                 productos={productos}
-                actualizarProductos={setProductos}
+                crearProducto={crearProductoEnCatalogo}
+                actualizarProducto={actualizarProductoEnCatalogo}
+                eliminarProducto={eliminarProductoDelCatalogo}
               />
             }
           />

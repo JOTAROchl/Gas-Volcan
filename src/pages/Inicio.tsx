@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
-import CardProducto from '../componentes/moleculas/CardProducto'
-import CarruselPortada from '../componentes/estructura/CarruselPortada'
+import CardProducto from '../components/molecules/CardProducto'
+import CarruselPortada from '../components/organisms/CarruselPortada'
 import type { Producto } from './catalogoProductos'
 
 function Inicio({ productos }: { productos: Producto[] }) {

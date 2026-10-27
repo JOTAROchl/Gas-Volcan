@@ -1,4 +1,4 @@
-import EnlacesNavegacion from '../moleculas/EnlacesNavegacion'
+import EnlacesNavegacion from '../molecules/EnlacesNavegacion'
 import { Link } from 'react-router-dom'
 
 function Encabezado({ cantidadSeleccion }: { cantidadSeleccion: number }) {

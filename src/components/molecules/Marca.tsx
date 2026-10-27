@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import LogoGEV from '../atomos/LogoGEV'
+import LogoGEV from '../atoms/LogoGEV'
 
 function Marca() {
   return (
