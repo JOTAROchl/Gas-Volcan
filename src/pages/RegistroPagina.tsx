@@ -1,24 +1,24 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { registrarUsuario } from '../data/authService'
 import {
-  guardarUsuariosDemo,
-  getUsuariosDemo,
   regionesComunas,
   validarNombre,
   validarRun,
-  type UsuarioDemo,
 } from './authDemo'
 
 function RegistroPagina() {
   const [region, setRegion] = useState('')
   const [mensaje, setMensaje] = useState('')
   const [correcto, setCorrecto] = useState(false)
+  const [enviando, setEnviando] = useState(false)
 
-  function registrar(event: FormEvent<HTMLFormElement>) {
+  async function registrar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const form = event.currentTarget
     setMensaje('')
     setCorrecto(false)
-    const data = new FormData(event.currentTarget)
+    const data = new FormData(form)
     const run = String(data.get('run') ?? '').trim().replace(/[.-]/g, '').toUpperCase()
     const nombre = String(data.get('name') ?? '').trim()
     const apellidos = String(data.get('lastname') ?? '').trim()
@@ -52,28 +52,31 @@ function RegistroPagina() {
       return
     }
 
-    const usuarios = getUsuariosDemo()
-    if (usuarios.some((usuario) => usuario.run === run || usuario.email === email)) {
-      setMensaje('El RUN o correo ya está registrado en esta sesión.')
-      return
+    setEnviando(true)
+    try {
+      await registrarUsuario({
+        run,
+        nombre,
+        apellidos,
+        email,
+        password,
+        region,
+        comuna,
+        direccion,
+      })
+      form.reset()
+      setRegion('')
+      setCorrecto(true)
+      setMensaje('Cuenta creada correctamente. Ya puedes iniciar sesión.')
+    } catch (error) {
+      setMensaje(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo crear la cuenta. Intenta nuevamente.',
+      )
+    } finally {
+      setEnviando(false)
     }
-
-    const usuario: UsuarioDemo = {
-      run,
-      nombre,
-      apellidos,
-      email,
-      rol: 'Cliente',
-      password,
-      region,
-      comuna,
-      direccion,
-    }
-    guardarUsuariosDemo([...usuarios, usuario])
-    event.currentTarget.reset()
-    setRegion('')
-    setCorrecto(true)
-    setMensaje('Usuario registrado. Ya puedes iniciar sesión.')
   }
 
   return (
@@ -112,7 +115,7 @@ function RegistroPagina() {
           name="password"
           type="password"
           minLength={8}
-          maxLength={1000}
+          maxLength={72}
           required
         />
         <div className="form-row">
@@ -147,18 +150,14 @@ function RegistroPagina() {
         </div>
         <label htmlFor="address">Dirección *</label>
         <input id="address" name="address" maxLength={300} required />
-        <button className="button button-primary" type="submit">
-          Registrar usuario
+        <button className="button button-primary" disabled={enviando} type="submit">
+          {enviando ? 'Enviando…' : 'Registrar usuario'}
         </button>
         <p className={`form-message ${correcto ? 'success' : 'error'}`} aria-live="polite">
           {mensaje}
         </p>
         <p>
           ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
-        </p>
-        <p className="demo-notice">
-          Esta es una demostración académica. Los datos se guardan solo en esta
-          sesión del navegador y no se envían a un servidor.
         </p>
       </form>
     </>

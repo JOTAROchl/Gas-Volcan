@@ -1,24 +1,26 @@
-import productosIniciales, { type Producto } from '../pages/catalogoProductos'
-
-const STORAGE_KEY = 'gasVolcanProductos'
+import { apiRequest } from './apiClient'
+import type { Producto } from '../pages/catalogoProductos'
 
 export type NuevoProducto = Omit<Producto, 'codigo'>
 export type CambiosProducto = Partial<NuevoProducto>
 
+function esObjeto(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
 function esProducto(value: unknown): value is Producto {
-  if (typeof value !== 'object' || value === null) return false
-  const producto = value as Record<string, unknown>
+  if (!esObjeto(value)) return false
 
   return (
-    typeof producto.codigo === 'string' &&
-    typeof producto.categoria === 'string' &&
-    typeof producto.nombre === 'string' &&
-    typeof producto.descripcion === 'string' &&
-    typeof producto.unidad === 'string' &&
-    typeof producto.precioResidencial === 'number' &&
-    typeof producto.precioComercial === 'number' &&
-    typeof producto.stock === 'number' &&
-    typeof producto.imagen === 'string'
+    typeof value.codigo === 'string' &&
+    typeof value.categoria === 'string' &&
+    typeof value.nombre === 'string' &&
+    typeof value.descripcion === 'string' &&
+    typeof value.unidad === 'string' &&
+    typeof value.precioResidencial === 'number' &&
+    typeof value.precioComercial === 'number' &&
+    typeof value.stock === 'number' &&
+    typeof value.imagen === 'string'
   )
 }
 
@@ -50,71 +52,56 @@ function validarProducto(producto: NuevoProducto) {
   if (!Number.isInteger(producto.stock) || producto.stock < 0) {
     throw new Error('El stock debe ser un número entero igual o mayor que cero.')
   }
-  if (!producto.imagen.trim()) {
-    throw new Error('Selecciona una imagen para el producto.')
+  if (!producto.imagen.trim() || producto.imagen.length > 500) {
+    throw new Error('Selecciona una imagen válida para el producto.')
   }
 }
 
-function guardarProductos(productos: Producto[]) {
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(productos))
-  return productos
-}
-
-export function obtenerProductos(): Producto[] {
-  const saved = sessionStorage.getItem(STORAGE_KEY)
-  if (!saved) return guardarProductos([...productosIniciales])
-
-  try {
-    const parsed: unknown = JSON.parse(saved)
-    if (Array.isArray(parsed) && parsed.every(esProducto)) return parsed
-    throw new TypeError('El catálogo guardado no tiene el formato esperado.')
-  } catch (error) {
-    console.error('No se pudo leer el catálogo guardado.', error)
-    sessionStorage.removeItem(STORAGE_KEY)
-    return guardarProductos([...productosIniciales])
+function leerProducto(value: unknown): Producto {
+  if (!esProducto(value)) {
+    throw new Error('La API devolvió un producto con formato inválido.')
   }
+  return value
 }
 
-export function crearProducto(datos: NuevoProducto): Producto[] {
+export async function obtenerProductos(): Promise<Producto[]> {
+  const response = await apiRequest('/productos')
+  if (!Array.isArray(response)) {
+    throw new Error('La API devolvió una lista de productos inválida.')
+  }
+  return response.map(leerProducto)
+}
+
+export async function crearProducto(
+  datos: NuevoProducto,
+): Promise<Producto> {
   validarProducto(datos)
-  const productos = obtenerProductos()
-  let timestamp = Date.now()
-  let codigo = `GEV${timestamp.toString(36).toUpperCase()}`
-  while (productos.some((producto) => producto.codigo === codigo)) {
-    timestamp += 1
-    codigo = `GEV${timestamp.toString(36).toUpperCase()}`
-  }
-
-  return guardarProductos([...productos, { ...datos, codigo }])
+  const response = await apiRequest('/productos', {
+    method: 'POST',
+    body: datos,
+    authenticated: true,
+  })
+  return leerProducto(response)
 }
 
-export function actualizarProducto(
+export async function actualizarProducto(
   codigo: string,
-  cambios: CambiosProducto,
-): Producto[] {
-  const productos = obtenerProductos()
-  const existente = productos.find((producto) => producto.codigo === codigo)
-  if (!existente) throw new Error('No se encontró el producto que deseas editar.')
-
-  const actualizado = { ...existente, ...cambios }
-  validarProducto(actualizado)
-
-  return guardarProductos(
-    productos.map((producto) =>
-      producto.codigo === codigo ? actualizado : producto,
-    ),
-  )
+  datos: NuevoProducto,
+): Promise<Producto> {
+  validarProducto(datos)
+  const response = await apiRequest(`/productos/${encodeURIComponent(codigo)}`, {
+    method: 'PUT',
+    body: datos,
+    authenticated: true,
+  })
+  return leerProducto(response)
 }
 
-export function eliminarProducto(codigo: string): Producto[] {
-  const productos = obtenerProductos()
-  if (!productos.some((producto) => producto.codigo === codigo)) {
-    throw new Error('No se encontró el producto que deseas eliminar.')
-  }
-
-  return guardarProductos(
-    productos.filter((producto) => producto.codigo !== codigo),
-  )
+export async function eliminarProducto(codigo: string): Promise<void> {
+  await apiRequest(`/productos/${encodeURIComponent(codigo)}`, {
+    method: 'DELETE',
+    authenticated: true,
+  })
 }
 
 function normalizar(texto: string) {

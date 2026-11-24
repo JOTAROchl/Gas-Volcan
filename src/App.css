@@ -95,6 +95,14 @@ p {
 	padding-left: 20px;
 }
 
+.nav-logout {
+	border: 0;
+	padding: 0;
+	background: transparent;
+	font: inherit;
+	cursor: pointer;
+}
+
 .selection-link {
 	background: #ef8b32;
 	border-radius: 4px;
@@ -568,7 +576,7 @@ textarea {
 
 .admin-grid {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
 	gap: 20px;
 }
 
@@ -743,14 +751,6 @@ th {
 	font-size: 2rem;
 }
 
-.demo-notice {
-	margin-top: 20px;
-	padding: 12px 15px;
-	border-left: 3px solid #ef8b32;
-	background: #fff2e3;
-	font-size: .9rem;
-}
-
 .registration-form {
 	margin-bottom: 70px;
 	padding: 30px;
@@ -786,6 +786,20 @@ th {
 .catalog-search {
 	max-width: 520px;
 	margin: 0 0 25px;
+}
+
+.catalog-search-controls {
+	display: flex;
+	gap: 10px;
+}
+
+.catalog-search-controls input {
+	flex: 1;
+	min-width: 0;
+}
+
+.catalog-search-controls .button {
+	white-space: nowrap;
 }
 
 .catalog-search label,

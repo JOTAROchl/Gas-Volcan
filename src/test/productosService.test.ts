@@ -1,5 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import productosIniciales from '../pages/catalogoProductos'
+import { guardarAccessToken } from '../data/apiClient'
+import { getUsuarioActual, setUsuarioActual } from '../pages/authDemo'
 import {
   actualizarProducto,
   buscarProductos,
@@ -20,67 +22,156 @@ const productoNuevo: NuevoProducto = {
   imagen: '/images/KitConexionCompleto.jpg',
 }
 
-describe('CRUD de productos', () => {
+function respuestaJson(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+describe('servicio de productos', () => {
   beforeEach(() => {
     sessionStorage.clear()
   })
 
-  it('crea un producto y lo guarda en el catálogo de sesión', () => {
-    const resultado = crearProducto(productoNuevo)
-    const guardados = obtenerProductos()
-    const creado = resultado.find(
-      (producto) => producto.nombre === productoNuevo.nombre,
-    )
-
-    expect(resultado).toHaveLength(productosIniciales.length + 1)
-    expect(creado).toMatchObject(productoNuevo)
-    expect(creado?.codigo).toMatch(/^GEV/)
-    expect(guardados).toContainEqual(creado)
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
-  it('actualiza los datos de un producto sin cambiar su código', () => {
-    const resultado = actualizarProducto('CL001', {
+  it('carga productos de la API sin requerir autenticación', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(respuestaJson(productosIniciales))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(obtenerProductos()).resolves.toEqual(productosIniciales)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/productos',
+      expect.objectContaining({ method: 'GET' }),
+    )
+    const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers)
+    expect(headers.has('Authorization')).toBe(false)
+  })
+
+  it('crea un producto enviando el JWT y los datos requeridos', async () => {
+    const creado = { ...productoNuevo, codigo: 'GEV123' }
+    const fetchMock = vi.fn().mockResolvedValue(respuestaJson(creado, 201))
+    vi.stubGlobal('fetch', fetchMock)
+    guardarAccessToken('jwt-admin', 900)
+
+    await expect(crearProducto(productoNuevo)).resolves.toEqual(creado)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/productos',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify(productoNuevo),
+      }),
+    )
+    const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers)
+    expect(headers.get('Authorization')).toBe('Bearer jwt-admin')
+  })
+
+  it('actualiza el producto completo usando PUT autenticado', async () => {
+    const actualizado = {
+      ...productosIniciales[0],
       nombre: 'Cilindro actualizado',
-      precioResidencial: 7000,
-      stock: 75,
+    }
+    const { codigo, ...datos } = actualizado
+    const fetchMock = vi.fn().mockResolvedValue(respuestaJson(actualizado))
+    vi.stubGlobal('fetch', fetchMock)
+    guardarAccessToken('jwt-admin', 900)
+
+    await expect(
+      actualizarProducto(codigo, datos),
+    ).resolves.toEqual(actualizado)
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/productos/${codigo}`,
+      expect.objectContaining({ method: 'PUT' }),
+    )
+    const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers)
+    expect(headers.get('Authorization')).toBe('Bearer jwt-admin')
+  })
+
+  it('elimina productos con el JWT y acepta la respuesta 204 vacía', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+    guardarAccessToken('jwt-admin', 900)
+
+    await expect(eliminarProducto('CL001')).resolves.toBeUndefined()
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/productos/CL001',
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+    const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers)
+    expect(headers.get('Authorization')).toBe('Bearer jwt-admin')
+  })
+
+  it('no envía mutaciones si falta el token', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(crearProducto(productoNuevo)).rejects.toThrow(
+      'Debes iniciar sesión para realizar esta acción.',
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('muestra errores del servidor y no modifica datos locales', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      respuestaJson({ detail: 'No tienes permisos para modificar productos.' }, 403),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    guardarAccessToken('jwt-cliente', 900)
+
+    await expect(crearProducto(productoNuevo)).rejects.toThrow(
+      'No tienes permisos para modificar productos.',
+    )
+    expect(sessionStorage.getItem('gasVolcanProductos')).toBeNull()
+  })
+
+  it('rechaza respuestas de API que no tienen el formato de producto', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(respuestaJson([{ codigo: 'CL001' }]))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(obtenerProductos()).rejects.toThrow(
+      'La API devolvió un producto con formato inválido.',
+    )
+  })
+
+  it('cierra la sesión al recibir 401 en una solicitud autenticada', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      respuestaJson({ detail: 'Token expirado.' }, 401),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    guardarAccessToken('jwt-expirado', 900)
+    setUsuarioActual({
+      run: '111111111',
+      nombre: 'Admin',
+      apellidos: 'Demo',
+      email: 'admin@gasvolcan.cl',
+      rol: 'Administrador',
     })
-    const actualizado = resultado.find(
-      (producto) => producto.codigo === 'CL001',
+
+    await expect(crearProducto(productoNuevo)).rejects.toThrow(
+      'Tu sesión expiró o dejó de ser válida. Inicia sesión nuevamente.',
+    )
+    expect(sessionStorage.getItem('gasVolcanAccessToken')).toBeNull()
+    expect(sessionStorage.getItem('gasVolcanAccessTokenExpiresAt')).toBeNull()
+    expect(getUsuarioActual()).toBeNull()
+  })
+
+  it('no envía solicitudes si el token ya venció', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    sessionStorage.setItem('gasVolcanAccessToken', 'jwt-expirado')
+    sessionStorage.setItem(
+      'gasVolcanAccessTokenExpiresAt',
+      String(Date.now() - 1000),
     )
 
-    expect(resultado).toHaveLength(productosIniciales.length)
-    expect(actualizado).toMatchObject({
-      codigo: 'CL001',
-      nombre: 'Cilindro actualizado',
-      precioResidencial: 7000,
-      stock: 75,
-    })
-    expect(obtenerProductos()).toContainEqual(actualizado)
-  })
-
-  it('elimina un producto del catálogo y conserva los demás', () => {
-    const resultado = eliminarProducto('CL001')
-
-    expect(resultado).toHaveLength(productosIniciales.length - 1)
-    expect(resultado.some((producto) => producto.codigo === 'CL001')).toBe(false)
-    expect(resultado.some((producto) => producto.codigo === 'CL002')).toBe(true)
-    expect(obtenerProductos()).toEqual(resultado)
-  })
-
-  it('inicializa el catálogo con los productos de demostración', () => {
-    const resultado = obtenerProductos()
-
-    expect(resultado).toEqual(productosIniciales)
-    expect(JSON.parse(sessionStorage.getItem('gasVolcanProductos') ?? '[]')).toEqual(
-      productosIniciales,
+    await expect(crearProducto(productoNuevo)).rejects.toThrow(
+      'Debes iniciar sesión para realizar esta acción.',
     )
-  })
-
-  it('rechaza la creación de un producto con precio no válido', () => {
-    expect(() =>
-      crearProducto({ ...productoNuevo, precioResidencial: 0 }),
-    ).toThrow('Los precios deben ser números mayores que cero.')
-    expect(obtenerProductos()).toHaveLength(productosIniciales.length)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(sessionStorage.getItem('gasVolcanAccessToken')).toBeNull()
   })
 
   it('busca productos sin distinguir mayúsculas ni tildes', () => {
@@ -96,41 +187,13 @@ describe('CRUD de productos', () => {
     ).toBe(true)
   })
 
-  it('informa si se intenta actualizar un código que no existe', () => {
-    expect(() =>
-      actualizarProducto('NO-EXISTE', { nombre: 'Producto inexistente' }),
-    ).toThrow('No se encontró el producto que deseas editar.')
-  })
-
   it('busca por código de producto sin distinguir mayúsculas', () => {
     const resultado = buscarProductos(productosIniciales, 'cl001')
 
     expect(resultado.map((producto) => producto.codigo)).toEqual(['CL001'])
   })
 
-  it('busca por categoría y devuelve todos los productos de esa categoría', () => {
-    const resultado = buscarProductos(productosIniciales, 'reguladores')
-
-    expect(resultado.map((producto) => producto.codigo)).toEqual([
-      'CL002',
-      'RG001',
-      'RG002',
-      'RG003',
-      'MG001',
-    ])
-  })
-
-  it('devuelve todos los productos cuando la búsqueda está vacía', () => {
-    const resultado = buscarProductos(productosIniciales, '   ')
-
-    expect(resultado).toBe(productosIniciales)
-    expect(resultado).toHaveLength(productosIniciales.length)
-  })
-
-  it('rechaza la eliminación de un producto que no existe', () => {
-    expect(() => eliminarProducto('NO-EXISTE')).toThrow(
-      'No se encontró el producto que deseas eliminar.',
-    )
-    expect(obtenerProductos()).toHaveLength(productosIniciales.length)
+  it('devuelve los productos originales cuando la búsqueda está vacía', () => {
+    expect(buscarProductos(productosIniciales, '   ')).toBe(productosIniciales)
   })
 })

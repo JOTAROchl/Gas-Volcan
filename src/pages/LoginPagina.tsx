@@ -1,12 +1,22 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { getUsuariosDemo, setUsuarioActual } from './authDemo'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { guardarSesion, iniciarSesion } from '../data/authService'
 
 function LoginPagina() {
-  const [mensaje, setMensaje] = useState('')
+  const location = useLocation()
+  const [mensaje, setMensaje] = useState(() => {
+    const state: unknown = location.state
+    return typeof state === 'object' &&
+      state !== null &&
+      'mensaje' in state &&
+      typeof state.mensaje === 'string'
+      ? state.mensaje
+      : ''
+  })
+  const [enviando, setEnviando] = useState(false)
   const navigate = useNavigate()
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
     const email = String(data.get('email') ?? '').trim()
@@ -15,21 +25,26 @@ function LoginPagina() {
       setMensaje('Ingresa un correo válido de máximo 100 caracteres.')
       return
     }
-    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
-      setMensaje('La contraseña debe tener al menos una letra y un número.')
+    if (!password || password.length > 72) {
+      setMensaje('Ingresa tu contraseña (máximo 72 caracteres).')
       return
     }
 
-    const usuario = getUsuariosDemo().find(
-      (item) => item.email === email && item.password === password,
-    )
-    if (!usuario) {
-      setMensaje('El correo o la contraseña no coinciden con una cuenta de la demo.')
-      return
+    setMensaje('')
+    setEnviando(true)
+    try {
+      const response = await iniciarSesion({ email, password })
+      guardarSesion(response)
+      navigate(response.usuario.rol === 'ADMINISTRADOR' ? '/admin' : '/')
+    } catch (error) {
+      setMensaje(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo iniciar sesión. Intenta nuevamente.',
+      )
+    } finally {
+      setEnviando(false)
     }
-
-    setUsuarioActual(usuario)
-    navigate(usuario.rol === 'Administrador' ? '/admin' : '/')
   }
 
   return (
@@ -73,19 +88,19 @@ function LoginPagina() {
                 required
               />
             </div>
-            <button             className="button button-primary w-100" type="submit">
-              Iniciar sesión
+            <button
+              className="button button-primary w-100"
+              disabled={enviando}
+              type="submit"
+            >
+              {enviando ? 'Ingresando…' : 'Iniciar sesión'}
             </button>
           </form>
           {mensaje && (
-            <p className="form-message error" role="status">
+            <p className="form-message error" role="alert">
               {mensaje}
             </p>
           )}
-          <p className="demo-notice">
-            Cuenta de demostración: admin@gasvolcan.cl / Admin1234.
-            No uses contraseñas reales en esta versión académica.
-          </p>
           <p>
             ¿Aún no tienes cuenta? <Link to="/registro">Regístrate</Link>
           </p>

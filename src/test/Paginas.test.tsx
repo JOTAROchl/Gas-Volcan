@@ -19,6 +19,12 @@ describe('Páginas del catálogo y contacto', () => {
     })
 
     expect(
+      screen.getByRole('heading', { name: 'Cilindro GLP 11 kg' }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }))
+
+    expect(
       screen.getByRole('heading', { name: 'Cilindro GLP 5 kg' }),
     ).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Cilindro GLP 11 kg' })).toBeNull()

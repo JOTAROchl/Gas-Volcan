@@ -72,7 +72,7 @@ function Seleccion({ seleccion, quitarProducto }: SeleccionProps) {
             <p className="price">
               Total referencial: ${total.toLocaleString('es-CL')}
             </p>
-            <p className="demo-notice">
+            <p className="text-secondary small">
               Precio residencial de referencia. La disponibilidad y el valor
               final deben confirmarse con el equipo de atención.
             </p>
@@ -101,9 +101,8 @@ function Seleccion({ seleccion, quitarProducto }: SeleccionProps) {
             >
               {mensaje}
             </p>
-            <p className="demo-notice">
-              Es una solicitud simulada; el sitio no procesa pagos ni pedidos
-              reales. No ingreses datos de tarjetas.
+            <p className="text-secondary small">
+              Esta solicitud es simulada; el sitio no procesa pedidos reales.
             </p>
           </form>
         </section>

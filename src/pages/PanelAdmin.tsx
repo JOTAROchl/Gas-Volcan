@@ -1,27 +1,21 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import {
-  getUsuarioActual,
-  getUsuariosDemo,
-  guardarUsuariosDemo,
-  setUsuarioActual,
-  type UsuarioDemo,
-} from './authDemo'
+import { cerrarSesion } from '../data/authService'
+import { getUsuarioActual } from './authDemo'
 import productosIniciales, { type Producto } from './catalogoProductos'
 import {
   buscarProductos,
-  type CambiosProducto,
   type NuevoProducto,
 } from '../data/productosService'
 
 interface PanelAdminProps {
   productos: Producto[]
-  crearProducto: (producto: NuevoProducto) => Producto[]
+  crearProducto: (producto: NuevoProducto) => Promise<Producto>
   actualizarProducto: (
     codigo: string,
-    cambios: CambiosProducto,
-  ) => Producto[]
-  eliminarProducto: (codigo: string) => Producto[]
+    datos: NuevoProducto,
+  ) => Promise<Producto>
+  eliminarProducto: (codigo: string) => Promise<void>
 }
 
 interface FormularioProducto {
@@ -55,10 +49,10 @@ function PanelAdmin({
   const usuarioActual = getUsuarioActual()
   const [mensaje, setMensaje] = useState('')
   const [tipoMensaje, setTipoMensaje] = useState<'success' | 'error'>('success')
+  const [guardandoProducto, setGuardandoProducto] = useState(false)
   const [consulta, setConsulta] = useState('')
   const [codigoEditando, setCodigoEditando] = useState<string | null>(null)
   const [formulario, setFormulario] = useState(formularioVacio)
-  const [usuarios, setUsuarios] = useState<UsuarioDemo[]>(getUsuariosDemo)
   const productosFiltrados = buscarProductos(productos, consulta)
   const categorias = useMemo(
     () => [...new Set(productos.map((producto) => producto.categoria))],
@@ -80,11 +74,11 @@ function PanelAdmin({
     return (
       <section className="page-heading">
         <h1>Acceso restringido.</h1>
-        <p>Esta sección está disponible para la cuenta de demostración admin.</p>
+        <p>Esta sección está disponible para cuentas administradoras.</p>
         <button
           className="button button-secondary"
           onClick={() => {
-            setUsuarioActual(null)
+            cerrarSesion()
             window.location.assign('/login')
           }}
           type="button"
@@ -127,7 +121,7 @@ function PanelAdmin({
     })
   }
 
-  function guardarProducto(event: FormEvent<HTMLFormElement>) {
+  async function guardarProducto(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const datos: NuevoProducto = {
       categoria: formulario.categoria.trim(),
@@ -140,12 +134,13 @@ function PanelAdmin({
       imagen: formulario.imagen,
     }
 
+    setGuardandoProducto(true)
     try {
       if (codigoEditando) {
-        actualizarProducto(codigoEditando, datos)
+        await actualizarProducto(codigoEditando, datos)
         setMensaje(`Se actualizaron los datos de ${datos.nombre}.`)
       } else {
-        crearProducto(datos)
+        await crearProducto(datos)
         setMensaje(`Se agregó ${datos.nombre} al catálogo.`)
       }
       setTipoMensaje('success')
@@ -157,14 +152,16 @@ function PanelAdmin({
           ? error.message
           : 'No se pudo guardar el producto. Intenta nuevamente.',
       )
+    } finally {
+      setGuardandoProducto(false)
     }
   }
 
-  function borrarProducto(producto: Producto) {
+  async function borrarProducto(producto: Producto) {
     if (!window.confirm(`¿Eliminar "${producto.nombre}" del catálogo?`)) return
 
     try {
-      eliminarProducto(producto.codigo)
+      await eliminarProducto(producto.codigo)
       if (codigoEditando === producto.codigo) limpiarFormulario()
       setTipoMensaje('success')
       setMensaje(`${producto.nombre} se eliminó del catálogo.`)
@@ -178,25 +175,16 @@ function PanelAdmin({
     }
   }
 
-  function eliminarUsuario(run: string) {
-    const actualizados = usuarios.filter(
-      (usuario) =>
-        usuario.run !== run && usuario.email !== usuarioAdmin.email,
-    )
-    guardarUsuariosDemo(actualizados)
-    setUsuarios(actualizados)
-  }
-
   return (
     <section className="admin-shell">
       <div className="admin-header form-card">
-        <p className="eyebrow">Administración · demostración</p>
+        <p className="eyebrow">Administración</p>
         <h1>Panel de gestión.</h1>
         <p>Sesión iniciada como {usuarioAdmin.email}.</p>
         <button
           className="button button-secondary"
           onClick={() => {
-            setUsuarioActual(null)
+            cerrarSesion()
             window.location.assign('/')
           }}
           type="button"
@@ -209,12 +197,7 @@ function PanelAdmin({
         <article className="stat-card">
           <p className="eyebrow">Productos</p>
           <h2>{productos.length}</h2>
-          <p>Disponibles en el catálogo de esta sesión.</p>
-        </article>
-        <article className="stat-card">
-          <p className="eyebrow">Usuarios</p>
-          <h2>{usuarios.length}</h2>
-          <p>Usuarios demo guardados en la sesión actual.</p>
+          <p>Productos cargados desde la base de datos.</p>
         </article>
         <article className="stat-card">
           <p className="eyebrow">Vista pública</p>
@@ -335,8 +318,16 @@ function PanelAdmin({
           value={formulario.descripcion}
         />
         <div className="button-row">
-          <button className="button button-primary" type="submit">
-            {codigoEditando ? 'Guardar cambios' : 'Crear producto'}
+          <button
+            className="button button-primary"
+            disabled={guardandoProducto}
+            type="submit"
+          >
+            {guardandoProducto
+              ? 'Guardando…'
+              : codigoEditando
+                ? 'Guardar cambios'
+                : 'Crear producto'}
           </button>
           {codigoEditando && (
             <button
@@ -415,49 +406,6 @@ function PanelAdmin({
         </table>
       </div>
 
-      <div className="table-wrap section-block">
-        <h2>Usuarios de demostración</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>RUN</th>
-              <th>Nombre</th>
-              <th>Correo</th>
-              <th>Rol</th>
-              <th>Acción</th>
-            </tr>
-          </thead>
-          <tbody>
-            {usuarios.map((usuario) => (
-              <tr key={usuario.run}>
-                <td>{usuario.run}</td>
-                <td>
-                  {usuario.nombre} {usuario.apellidos}
-                </td>
-                <td>{usuario.email}</td>
-                <td>{usuario.rol}</td>
-                <td>
-                  {usuario.email === usuarioAdmin.email ? (
-                    <span>Cuenta actual</span>
-                  ) : (
-                    <button
-                      className="button button-danger"
-                      onClick={() => eliminarUsuario(usuario.run)}
-                      type="button"
-                    >
-                      Eliminar
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="demo-notice">
-        Los cambios se guardan en la sesión del navegador y se pierden al
-        cerrarla. Este panel es demostrativo: no se conecta a una base de datos.
-      </p>
     </section>
   )
 }

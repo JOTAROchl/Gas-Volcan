@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Encabezado from './components/organisms/Encabezado'
+import AuthSessionMonitor from './components/organisms/AuthSessionMonitor'
 import PiePagina from './components/organisms/PiePagina'
 import Contacto from './pages/Contacto'
 import DetalleProductos from './pages/DetalleProductos'
@@ -19,13 +20,14 @@ import {
   crearProducto,
   eliminarProducto,
   obtenerProductos,
-  type CambiosProducto,
   type NuevoProducto,
 } from './data/productosService'
 import './App.css'
 
 function App() {
-  const [productos, setProductos] = useState<Producto[]>(obtenerProductos)
+  const [productos, setProductos] = useState<Producto[]>([])
+  const [cargandoProductos, setCargandoProductos] = useState(true)
+  const [errorProductos, setErrorProductos] = useState('')
   const [seleccion, setSeleccion] = useState<Producto[]>(() => {
     const saved = localStorage.getItem('gasVolcanSelection')
     if (!saved) return []
@@ -53,6 +55,46 @@ function App() {
     localStorage.setItem('gasVolcanSelection', JSON.stringify(seleccion))
   }, [seleccion])
 
+  useEffect(() => {
+    let activo = true
+    obtenerProductos()
+      .then((productosCargados) => {
+        if (activo) setProductos(productosCargados)
+      })
+      .catch((error: unknown) => {
+        if (activo) {
+          setErrorProductos(
+            error instanceof Error
+              ? error.message
+              : 'No se pudo cargar el catálogo de productos.',
+          )
+        }
+      })
+      .finally(() => {
+        if (activo) setCargandoProductos(false)
+      })
+
+    return () => {
+      activo = false
+    }
+  }, [])
+
+  async function reintentarCargaProductos() {
+    setCargandoProductos(true)
+    setErrorProductos('')
+    try {
+      setProductos(await obtenerProductos())
+    } catch (error) {
+      setErrorProductos(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo cargar el catálogo de productos.',
+      )
+    } finally {
+      setCargandoProductos(false)
+    }
+  }
+
   function agregarProducto(producto: Producto) {
     setSeleccion((actual) =>
       actual.some((item) => item.codigo === producto.codigo)
@@ -65,42 +107,64 @@ function App() {
     setSeleccion((actual) => actual.filter((item) => item.codigo !== codigo))
   }
 
-  function crearProductoEnCatalogo(producto: NuevoProducto) {
-    const actualizados = crearProducto(producto)
-    setProductos(actualizados)
-    return actualizados
+  async function crearProductoEnCatalogo(
+    producto: NuevoProducto,
+  ): Promise<Producto> {
+    const creado = await crearProducto(producto)
+    setProductos((actuales) => [...actuales, creado])
+    return creado
   }
 
-  function actualizarProductoEnCatalogo(
+  async function actualizarProductoEnCatalogo(
     codigo: string,
-    cambios: CambiosProducto,
-  ) {
-    const actualizados = actualizarProducto(codigo, cambios)
-    setProductos(actualizados)
-    const actualizado = actualizados.find((producto) => producto.codigo === codigo)
-    if (actualizado) {
-      setSeleccion((actual) =>
-        actual.map((producto) =>
-          producto.codigo === codigo ? actualizado : producto,
-        ),
-      )
-    }
-    return actualizados
+    datos: NuevoProducto,
+  ): Promise<Producto> {
+    const actualizado = await actualizarProducto(codigo, datos)
+    setProductos((actuales) =>
+      actuales.map((producto) =>
+        producto.codigo === codigo ? actualizado : producto,
+      ),
+    )
+    setSeleccion((actual) =>
+      actual.map((producto) =>
+        producto.codigo === codigo ? actualizado : producto,
+      ),
+    )
+    return actualizado
   }
 
-  function eliminarProductoDelCatalogo(codigo: string) {
-    const actualizados = eliminarProducto(codigo)
-    setProductos(actualizados)
+  async function eliminarProductoDelCatalogo(codigo: string): Promise<void> {
+    await eliminarProducto(codigo)
+    setProductos((actuales) =>
+      actuales.filter((producto) => producto.codigo !== codigo),
+    )
     setSeleccion((actual) =>
       actual.filter((producto) => producto.codigo !== codigo),
     )
-    return actualizados
   }
 
   return (
     <div className="app-shell">
+      <AuthSessionMonitor />
       <Encabezado cantidadSeleccion={seleccion.length} />
       <main className="container">
+        {cargandoProductos && (
+          <p className="form-message" role="status">
+            Cargando productos del catálogo…
+          </p>
+        )}
+        {errorProductos && (
+          <div className="form-message error" role="alert">
+            <p>{errorProductos}</p>
+            <button
+              className="button button-secondary"
+              onClick={() => void reintentarCargaProductos()}
+              type="button"
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
         <Routes>
           <Route path="/" element={<Inicio productos={productos} />} />
           <Route path="/catalogo" element={<Productos productos={productos} />} />

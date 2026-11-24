@@ -86,7 +86,7 @@ function Contacto() {
             <strong>Teléfono:</strong>{' '}
             <a href="tel:+56912345678">+56912345678</a>
           </p>
-          <p className="demo-notice">
+          <p className="text-secondary small mt-3">
             El formulario es demostrativo y no envía mensajes fuera de este
             navegador.
           </p>

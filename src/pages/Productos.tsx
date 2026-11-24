@@ -5,7 +5,8 @@ import { buscarProductos } from '../data/productosService'
 
 function Productos({ productos }: { productos: Producto[] }) {
   const [consulta, setConsulta] = useState('')
-  const productosFiltrados = buscarProductos(productos, consulta)
+  const [busqueda, setBusqueda] = useState('')
+  const productosFiltrados = buscarProductos(productos, busqueda)
 
   return (
     <>
@@ -18,14 +19,27 @@ function Productos({ productos }: { productos: Producto[] }) {
         </p>
       </section>
       <section className="catalog-search" aria-label="Buscar productos">
-        <label htmlFor="catalog-search">Buscar por producto o categoría</label>
-        <input
-          id="catalog-search"
-          onChange={(event) => setConsulta(event.target.value)}
-          placeholder="Ej.: cilindro, regulador..."
-          type="search"
-          value={consulta}
-        />
+        <form
+          className="catalog-search-form"
+          onSubmit={(event) => {
+            event.preventDefault()
+            setBusqueda(consulta)
+          }}
+        >
+          <label htmlFor="catalog-search">Buscar por producto o categoría</label>
+          <div className="catalog-search-controls">
+            <input
+              id="catalog-search"
+              onChange={(event) => setConsulta(event.target.value)}
+              placeholder="Ej.: cilindro, regulador..."
+              type="search"
+              value={consulta}
+            />
+            <button className="button button-primary" type="submit">
+              Buscar
+            </button>
+          </div>
+        </form>
         <p aria-live="polite">
           {productosFiltrados.length}{' '}
           {productosFiltrados.length === 1 ? 'producto encontrado' : 'productos encontrados'}
